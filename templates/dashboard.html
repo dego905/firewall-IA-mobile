@@ -1,0 +1,74 @@
+<!DOCTYPE html><html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sin Nombre Security AI</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-900 text-white font-sans">
+  <div class="p-4">
+    <h1 class="text-3xl font-bold mb-4">Sin Nombre Security AI</h1>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div class="bg-gray-800 p-4 rounded-xl shadow-xl">
+        <p class="text-lg">Conexiones Activas</p>
+        <p id="total-conns" class="text-2xl font-bold">0</p>
+      </div>
+      <div class="bg-gray-800 p-4 rounded-xl shadow-xl">
+        <p class="text-lg">Amenazas Detectadas</p>
+        <p id="total-threats" class="text-2xl font-bold">0</p>
+      </div>
+      <div class="bg-gray-800 p-4 rounded-xl shadow-xl">
+        <p class="text-lg">Estado del Firewall</p>
+        <p class="text-green-400 text-2xl font-bold">Activo</p>
+      </div>
+    </div>
+    <div class="bg-gray-800 p-4 rounded-xl shadow-xl mb-6">
+      <h2 class="text-xl mb-2">Últimos Registros</h2>
+      <pre id="log-output" class="whitespace-pre-wrap text-sm h-48 overflow-y-auto bg-black p-2 rounded"></pre>
+    </div>
+    <div class="bg-gray-800 p-4 rounded-xl shadow-xl mb-6">
+      <h2 class="text-xl mb-2">Conexiones Recientes</h2>
+      <table class="w-full text-sm">
+        <thead>
+          <tr>
+            <th class="text-left p-2">IP</th>
+            <th class="text-left p-2">Puerto</th>
+            <th class="text-left p-2">Protocolo</th>
+            <th class="text-left p-2">Proceso</th>
+          </tr>
+        </thead>
+        <tbody id="conn-table"></tbody>
+      </table>
+    </div>
+    <div class="flex justify-between">
+      <button onclick="retrain()" class="bg-blue-500 hover:bg-blue-700 px-4 py-2 rounded">Reentrenar Modelo</button>
+      <a href="/conn_raw.csv" class="bg-green-600 hover:bg-green-800 px-4 py-2 rounded">Descargar CSV</a>
+    </div>
+  </div>  <script>
+    async function fetchData() {
+      const res = await fetch('/data')
+      const data = await res.json()
+      const logs = data.logs.join('\n')
+      document.getElementById('log-output').textContent = logs
+      const connTable = document.getElementById('conn-table')
+      connTable.innerHTML = ''
+      let threats = 0
+      data.conns.forEach(conn => {
+        const row = `<tr><td class="p-2">${conn.IP}</td><td class="p-2">${conn.PORT}</td><td class="p-2">${conn.PROTO}</td><td class="p-2">${conn.PROCESS}</td></tr>`
+        connTable.innerHTML += row
+        if (conn.THREAT && conn.THREAT == '1') threats++
+      })
+      document.getElementById('total-conns').textContent = data.conns.length
+      document.getElementById('total-threats').textContent = threats
+    }
+    fetchData()
+    setInterval(fetchData, 5000)
+
+    async function retrain() {
+      const res = await fetch('/retrain', { method: 'POST' })
+      const result = await res.json()
+      alert(result.status)
+    }
+  </script></body>
+</html>
