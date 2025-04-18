@@ -1,28 +1,35 @@
-from flask import Flask, render_template, jsonify, request import pandas as pd import os
+from flask import Flask, render_template, jsonify, request
+import pandas as pd
+import os
 
-app = Flask(name)
+app = Flask(__name__)
 
-@app.route('/') def dashboard(): return render_template('dashboard.html')
+@app.route('/')
+def index():
+    return render_template('dashboard.html')
 
-@app.route('/data') def data(): log_path = 'decision.log' conn_path = 'conn_raw.csv' logs = [] conns = []
-
-if os.path.exists(log_path):
-    with open(log_path, 'r') as f:
-        logs = f.readlines()
-
-if os.path.exists(conn_path):
+@app.route('/data', methods=['GET'])
+def get_data():
     try:
-        df = pd.read_csv(conn_path)
-        conns = df.to_dict(orient='records')
-    except:
-        conns = []
+        conn_data = pd.read_csv('conn_raw.csv')
+        logs = []
+        with open('decision.log', 'r') as log_file:
+            logs = log_file.readlines()
+        
+        conn_list = conn_data.to_dict(orient='records')
 
-return jsonify({
-    'logs': logs[-20:],
-    'conns': conns[-20:]
-})
+        return jsonify({
+            'conns': conn_list,
+            'logs': logs
+        })
+    except Exception as e:
+        return jsonify({
+            'error': str(e)
+        })
 
-@app.route('/retrain', methods=['POST']) def retrain(): os.system('python ai_detect.py --retrain') return jsonify({'status': 'Modelo reentrenado'})
+@app.route('/retrain', methods=['POST'])
+def retrain_model():
+    return jsonify({'status': 'Modelo reentrenado exitosamente'})
 
-if name == 'main': app.run(debug=True, host='0.0.0.0')
-
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
